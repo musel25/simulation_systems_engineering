@@ -1,43 +1,52 @@
 import xml.etree.ElementTree as ET
 import numpy as np
 
-# Parse the EDSPN XML file
-tree = ET.parse('your_file.edspn')
+# Define the namespace dictionary
+ns = {'edspn': 'http://pdv.cs.tu-berlin.de/TimeNET/schema/eDSPN'}
+
+# Parse the XML file
+tree = ET.parse('elvatorfinal.xml')
 root = tree.getroot()
 
-# Create mappings for places and transitions
+# Build mappings for places and transitions
 places = {}
 transitions = {}
 
-# Adjust the tag names based on your EDSPN file structure
-for place in root.findall('.//place'):
-    place_id = place.get('id')
-    places[place_id] = len(places)
+# Extract places
+for place in root.findall('edspn:place', ns):
+    pid = place.get('id')
+    places[pid] = len(places)
 
-for transition in root.findall('.//transition'):
-    trans_id = transition.get('id')
-    transitions[trans_id] = len(transitions)
+# Extract transitions (assuming immediateTransition is the type you want)
+for trans in root.findall('edspn:immediateTransition', ns):
+    tid = trans.get('id')
+    transitions[tid] = len(transitions)
 
-# Initialize pre and post matrices
 num_places = len(places)
 num_transitions = len(transitions)
+
+# Initialize pre and post matrices
 pre_matrix = np.zeros((num_places, num_transitions), dtype=int)
 post_matrix = np.zeros((num_places, num_transitions), dtype=int)
 
-# Process arcs (adjust tag names and attribute names as needed)
-for arc in root.findall('.//arc'):
-    source = arc.get('source')
-    target = arc.get('target')
-    # Assume weight attribute exists; default to 1 if not
-    weight = int(arc.get('weight', '1'))
+# Process arcs (for standard arcs; you may ignore inhibit arcs)
+for arc in root.findall('edspn:arc', ns):
+    source = arc.get('fromNode')
+    target = arc.get('toNode')
+    # Try to extract a numeric weight; if not possible, default to 1.
+    try:
+        weight = int(arc.get('weight'))
+    except (ValueError, TypeError):
+        weight = 1
 
-    # Check if arc is from a place to a transition (pre arc)
+    # Determine if the arc is a pre or post arc
     if source in places and target in transitions:
+        # Arc from a place to a transition (pre-incidence)
         i = places[source]
         j = transitions[target]
         pre_matrix[i, j] += weight
-    # Check if arc is from a transition to a place (post arc)
     elif source in transitions and target in places:
+        # Arc from a transition to a place (post-incidence)
         j = transitions[source]
         i = places[target]
         post_matrix[i, j] += weight
@@ -45,7 +54,6 @@ for arc in root.findall('.//arc'):
 # Compute the net incidence matrix: C = post - pre
 incidence_matrix = post_matrix - pre_matrix
 
-# Display the matrices
 print("Pre-incidence matrix (C^-):")
 print(pre_matrix)
 print("\nPost-incidence matrix (C^+):")
