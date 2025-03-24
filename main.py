@@ -5,7 +5,7 @@ import numpy as np
 ns = {'edspn': 'http://pdv.cs.tu-berlin.de/TimeNET/schema/eDSPN'}
 
 # Parse the XML file
-tree = ET.parse('elevatorfinal.xml')
+tree = ET.parse('elevator_exported.xml')
 root = tree.getroot()
 
 # Build mappings for places and transitions
